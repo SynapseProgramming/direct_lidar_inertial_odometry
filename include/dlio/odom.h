@@ -124,11 +124,11 @@ private:
   double length_traversed;
 
   // Keyframes
-  std::vector<std::pair<std::pair<Eigen::Vector3f, Eigen::Quaternionf>,
+  std::deque<std::pair<std::pair<Eigen::Vector3f, Eigen::Quaternionf>,
                         pcl::PointCloud<PointType>::ConstPtr>> keyframes;
-  std::vector<ros::Time> keyframe_timestamps;
-  std::vector<std::shared_ptr<const nano_gicp::CovarianceList>> keyframe_normals;
-  std::vector<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> keyframe_transformations;
+  std::deque<ros::Time> keyframe_timestamps;
+  std::deque<std::shared_ptr<const nano_gicp::CovarianceList>> keyframe_normals;
+  std::deque<Eigen::Matrix4f, Eigen::aligned_allocator<Eigen::Matrix4f>> keyframe_transformations;
   std::mutex keyframes_mutex;
 
   // Sensor Type

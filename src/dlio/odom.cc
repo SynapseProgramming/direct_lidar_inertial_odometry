@@ -1545,6 +1545,14 @@ void dlio::OdomNode::updateKeyframes() {
 
   int num_nearby = 0;
 
+  // print out the size of all of the keyframe arrays
+  std::cout << "keyframes: " << this->keyframes.size() << std::endl;
+  std::cout << "keyframe_timestamps: " << this->keyframe_timestamps.size() << std::endl;
+  std::cout << "keyframe_normals: " << this->keyframe_normals.size() << std::endl;
+  std::cout << "keyframe_transformations: " << this->keyframe_transformations.size() << std::endl;
+
+
+
   for (const auto& k : this->keyframes) {
 
     // calculate distance between current pose and pose in keyframes
@@ -1615,6 +1623,40 @@ void dlio::OdomNode::updateKeyframes() {
     this->keyframe_transformations.push_back(this->T_corr);
     lock.unlock();
 
+  }
+
+    double farthest_d = 0;
+  double farthest_ind = 0;
+  // iterate through all of the keyframes. If the count of the keyframes is 
+  // above 10, then we would iterate through all of the current keyframes, and 
+  // remove the keyframe which is the furthest away from the bots current position
+  if (this->keyframes.size() > 30) {
+  //   for (int i = 0; i < this->keyframes.size(); i++) {
+  //     float delta_d = sqrt( pow(this->state.p[0] - this->keyframes[i].first.first[0], 2) +
+  //                           pow(this->state.p[1] - this->keyframes[i].first.first[1], 2) +
+  //                           pow(this->state.p[2] - this->keyframes[i].first.first[2], 2) );
+  //     if (delta_d > farthest_d) {
+  //       farthest_d = delta_d;
+  //       farthest_ind = i;
+  //     }
+  //   }
+  //   // std::unique_lock<decltype(this->keyframes_mutex)> lock(this->keyframes_mutex);
+  //   this->keyframes.erase(this->keyframes.begin() + farthest_ind);
+  //   this->keyframe_timestamps.erase(this->keyframe_timestamps.begin() + farthest_ind);
+  //   this->keyframe_normals.erase(this->keyframe_normals.begin() + farthest_ind);
+  //   this->keyframe_transformations.erase(this->keyframe_transformations.begin() + farthest_ind);
+  //   this->num_processed_keyframes--;
+  //   // lock.unlock();
+
+
+    // for all of the deques, pop the front element
+    std::unique_lock<decltype(this->keyframes_mutex)> lock(this->keyframes_mutex);
+    this->keyframes.pop_front();
+    this->keyframe_timestamps.pop_front();
+    this->keyframe_normals.pop_front();
+    this->keyframe_transformations.pop_front();
+    this->num_processed_keyframes--;
+    lock.unlock();
   }
 
 }
@@ -1765,6 +1807,8 @@ void dlio::OdomNode::buildSubmap(State vehicle_state) {
 
 void dlio::OdomNode::buildKeyframesAndSubmap(State vehicle_state) {
 
+  
+
   // transform the new keyframe(s) and associated covariance list(s)
     std::unique_lock<decltype(this->keyframes_mutex)> lock(this->keyframes_mutex);
 
@@ -1784,6 +1828,7 @@ void dlio::OdomNode::buildKeyframesAndSubmap(State vehicle_state) {
                    [&Td](Eigen::Matrix4d cov) { return Td * cov * Td.transpose(); });
 
     ++this->num_processed_keyframes;
+    // if(this->num_processed_keyframes>10) this->num_processed_keyframes = 10;
 
     lock.lock();
     this->keyframes[i].second = transformed_keyframe;
@@ -1791,6 +1836,8 @@ void dlio::OdomNode::buildKeyframesAndSubmap(State vehicle_state) {
 
     this->publish_keyframe_thread = std::thread( &dlio::OdomNode::publishKeyframe, this, this->keyframes[i], this->keyframe_timestamps[i] );
     this->publish_keyframe_thread.detach();
+
+
   }
 
   lock.unlock();
